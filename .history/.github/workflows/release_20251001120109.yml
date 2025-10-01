@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.3) — will create/update tag v<version>'
+        required: true
+        default: '1.0.3'
+
+# 明示的 permission (Release 失敗時の典型要因: contents: write がない)
+permissions:
+  contents: write
+  discussions: read
+  issues: read
+
+jobs:
+  build-and-release:
+    # 念のため: タグ push か手動 dispatch 以外では実行しない (保険)
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            INPUT_VER="${{ github.event.inputs.version }}"
+            echo "version_from_input=$INPUT_VER" >> $GITHUB_OUTPUT
+            VERSION="$INPUT_VER"
+          else
+            # push / tag イベント: tag か package.json/plugin.json から拾う
+            if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+              VERSION="${GITHUB_REF#refs/tags/v}"
+            else
+              # fallback: plugin.json の version
+              VERSION=$(grep '"version"' plugin.json | head -1 | sed -E 's/.*"version" *: *"([^"]+)".*/\1/')
+            fi
+          fi
+          echo "Using VERSION=$VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Sync versions (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.ver.outputs.version }}'
+          echo "Syncing version to plugin.json & package.json"
+          if command -v jq >/dev/null 2>&1; then
+            jq ".version=\"$VERSION\"" plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
+            jq ".version=\"$VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
+          else
+            echo "jq not found; skipping JSON updates"; fi
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git add plugin.json package.json || true
+          if git diff --cached --quiet; then
+            echo "No version file changes to commit"
+          else
+            git commit -m "ci: bump version to $VERSION"
+          fi
+
+      - name: Create / update tag (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.ver.outputs.version }}'
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists. Re-pointing to current commit.";
+            git tag -d "$TAG"
+          fi
+            git tag "$TAG"
+            git push --force origin "$TAG"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          check-latest: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Verify pnpm
+        run: |
+          set -euo pipefail
+          which pnpm || echo 'pnpm not in PATH'
+          pnpm -v
+
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          if command -v pnpm >/dev/null 2>&1; then
+            echo 'Using pnpm'
+            if [ ! -f pnpm-lock.yaml ]; then
+              echo 'pnpm-lock.yaml missing. Generating (first run)...'; pnpm install --lockfile-only; fi
+            pnpm install --frozen-lockfile
+          else
+            echo 'Fallback to npm ci'
+            npm ci
+          fi
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          if command -v pnpm >/dev/null 2>&1; then pnpm build; else npm run build; fi
+
+      - name: Package zip
+        run: |
+          set -euo pipefail
+          test -d dist || { echo 'dist/ missing. Did build fail?'; ls -l; exit 1; }
+          echo 'Listing dist contents:'
+          ls -R dist | head -100 || true
+          ZIP=decky-pip.zip
+          zip -r "$ZIP" plugin.json dist picture.jpg expand.jpg >/dev/null
+          echo 'Created archive:'
+          ls -l "$ZIP"
+          unzip -l "$ZIP" | sed -n '1,40p'
+
+      - name: Validate packaged artifacts
+        run: |
+          set -euo pipefail
+          if [ ! -f dist/index.js ]; then echo 'dist/index.js missing' && exit 1; fi
+          SIZE=$(wc -c < dist/index.js)
+          echo "dist/index.js size: $SIZE bytes"
+          if [ "$SIZE" -lt 50000 ]; then echo 'dist/index.js suspiciously small (<50KB)'; exit 1; fi
+          jq -r '.name' plugin.json || true
+          echo 'ZIP structure root:'
+          unzip -l decky-pip.zip | awk '{print $4}' | sed -n '1,30p'
+
+      - name: Create / Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: v${{ steps.ver.outputs.version }}
+          files: decky-pip.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
