@@ -1,11 +1,12 @@
 {
-  "name": "Picture in Picture",
-  "author": "Ross Squires",
-  "flags": [],
+  "name": "Pip Video Overlay", 
+  "author": "nemico (fork of Ross Squires)",
+  "flags": ["no_python"],
   "api_version": 1,
   "publish": {
     "tags": ["web", "video", "pip", "movies", "tv"],
-    "description": "Watch your favorite stream while you game!",
-    "image": "https://raw.githubusercontent.com/rossimo/decky-pip/refs/heads/main/picture.jpg"
+    "description": "Watch your favorite stream while you game! (forked, JS-only)",
+    "image": "https://raw.githubusercontent.com/nemico/decky-pip/main/picture.jpg",
+    "note": "Original: rossimo/decky-pip"
   }
 }

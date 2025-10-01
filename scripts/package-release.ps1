@@ -25,10 +25,14 @@ if(Test-Path picture.jpg){ Copy-Item picture.jpg release-temp/ }
 if(Test-Path expand.jpg){ Copy-Item expand.jpg release-temp/ }
 Copy-Item dist release-temp/dist -Recurse
 
-$zipName = "decky-pip-$Version.zip"
-if(Test-Path $zipName){ Remove-Item $zipName -Force }
-Compress-Archive -Path release-temp/* -DestinationPath $zipName
+$zipVersioned = "decky-pip-$Version.zip"
+$zipConstant = "decky-pip.zip"
+foreach($z in @($zipVersioned,$zipConstant)){
+  if(Test-Path $z){ Remove-Item $z -Force }
+}
+Compress-Archive -Path release-temp/* -DestinationPath $zipVersioned
+Copy-Item $zipVersioned $zipConstant
 Remove-Item release-temp -Recurse -Force
 
-Write-Info "Created $zipName"
-Write-Host "Upload this file as a Release asset then use its URL in Decky Loader's Install from URL." -ForegroundColor Green
+Write-Info "Created $zipVersioned and $zipConstant"
+Write-Host "Upload decky-pip.zip as Release asset. Constant name gives stable URL." -ForegroundColor Green

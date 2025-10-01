@@ -26,13 +26,13 @@ jobs:
 
       - name: Package zip
         run: |
-          zip -r decky-pip-${GITHUB_REF_NAME}.zip plugin.json dist picture.jpg expand.jpg 2>/dev/null || true
-          ls -l *.zip || (echo 'Zip not created'; exit 1)
+          zip -r decky-pip.zip plugin.json dist picture.jpg expand.jpg 2>/dev/null || true
+          ls -l decky-pip.zip || (echo 'Zip not created'; exit 1)
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-            files: decky-pip-${{ github.ref_name }}.zip
+            files: decky-pip.zip
             generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
