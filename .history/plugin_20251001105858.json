@@ -1,0 +1,12 @@
+{
+  "name": "Pip Video Overlay", 
+  "author": "nemico (fork of Ross Squires)",
+  "flags": ["no_python"],
+  "api_version": 1,
+  "publish": {
+    "tags": ["web", "video", "pip", "movies", "tv"],
+    "description": "Watch your favorite stream while you game! (forked, JS-only)",
+    "image": "https://raw.githubusercontent.com/nemico/decky-pip/main/picture.jpg",
+    "note": "Original: rossimo/decky-pip"
+  }
+}

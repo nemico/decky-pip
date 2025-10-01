@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.3) — will create tag v<version>'
+        required: true
+        default: '1.0.3'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare tag (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Using version: $VERSION"
+          # Update plugin.json version field (simple jq replace)
+          if command -v jq >/dev/null 2>&1; then
+            jq ".version=\"$VERSION\"" plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
+          fi
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git add plugin.json || true
+          if git diff --cached --quiet; then
+            echo "No plugin.json changes to commit"
+          else
+            git commit -m "ci: bump plugin.json version to $VERSION"
+          fi
+          git tag "v$VERSION"
+          git push origin "v$VERSION" || echo "Tag push may fail if already exists"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package zip
+        run: |
+          zip -r decky-pip.zip plugin.json dist picture.jpg expand.jpg 2>/dev/null || true
+          ls -l decky-pip.zip || (echo 'Zip not created'; exit 1)
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+            files: decky-pip.zip
+            generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
