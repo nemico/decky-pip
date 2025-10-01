@@ -7,6 +7,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.3) — will create tag v<version>'
+        required: true
+        default: '1.0.3'
 
 jobs:
   build-and-release:
@@ -14,6 +19,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Prepare tag (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Using version: $VERSION"
+          # Update plugin.json version field (simple jq replace)
+          if command -v jq >/dev/null 2>&1; then
+            jq ".version=\"$VERSION\"" plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
+          fi
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git add plugin.json || true
+          if git diff --cached --quiet; then
+            echo "No plugin.json changes to commit"
+          else
+            git commit -m "ci: bump plugin.json version to $VERSION"
+          fi
+          git tag "v$VERSION"
+          git push origin "v$VERSION" || echo "Tag push may fail if already exists"
 
       - name: Setup Node
         uses: actions/setup-node@v4
