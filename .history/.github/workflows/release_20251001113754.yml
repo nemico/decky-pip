@@ -81,41 +81,27 @@ jobs:
             git tag "$TAG"
             git push --force origin "$TAG"
 
-      - name: Setup Node
+      - name: Setup Node (pnpm)
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          check-latest: true
+          cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
-
-      - name: Verify pnpm
+      - name: Enable corepack & pnpm --version
         run: |
           set -euo pipefail
-          which pnpm || echo 'pnpm not in PATH'
+          corepack enable
           pnpm -v
 
-      - name: Install deps
+      - name: Install deps (pnpm)
         run: |
           set -euo pipefail
-          if command -v pnpm >/dev/null 2>&1; then
-            echo 'Using pnpm'
-            if [ ! -f pnpm-lock.yaml ]; then
-              echo 'pnpm-lock.yaml missing. Generating (first run)...'; pnpm install --lockfile-only; fi
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo 'pnpm-lock.yaml missing. Generating (first run)...'; pnpm install --lockfile-only; fi
             pnpm install --frozen-lockfile
-          else
-            echo 'Fallback to npm ci'
-            npm ci
-          fi
 
       - name: Build
-        run: |
-          set -euo pipefail
-          if command -v pnpm >/dev/null 2>&1; then pnpm build; else npm run build; fi
+        run: pnpm build
 
       - name: Package zip
         run: |
