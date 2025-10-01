@@ -1,6 +1,7 @@
 {
   "name": "Picture in Picture", 
   "author": "nemico (fork of Ross Squires)",
+  "flags": ["no_python"],
   "api_version": 1,
   "version": "1.0.5",
   "publish": {
