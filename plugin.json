@@ -3,6 +3,7 @@
   "author": "nemico (fork of Ross Squires)",
   "flags": ["no_python"],
   "api_version": 1,
+  "version": "1.0.2",
   "publish": {
     "tags": ["web", "video", "pip", "movies", "tv"],
     "description": "Watch your favorite stream while you game! (forked, JS-only)",
