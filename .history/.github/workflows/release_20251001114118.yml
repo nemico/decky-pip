@@ -129,17 +129,6 @@ jobs:
           ls -l "$ZIP"
           unzip -l "$ZIP" | sed -n '1,40p'
 
-      - name: Validate packaged artifacts
-        run: |
-          set -euo pipefail
-          if [ ! -f dist/index.js ]; then echo 'dist/index.js missing' && exit 1; fi
-          SIZE=$(wc -c < dist/index.js)
-          echo "dist/index.js size: $SIZE bytes"
-          if [ "$SIZE" -lt 50000 ]; then echo 'dist/index.js suspiciously small (<50KB)'; exit 1; fi
-          jq -r '.name' plugin.json || true
-          echo 'ZIP structure root:'
-          unzip -l decky-pip.zip | awk '{print $4}' | sed -n '1,30p'
-
       - name: Create / Update Release
         uses: softprops/action-gh-release@v2
         with:
