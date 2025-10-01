@@ -32,8 +32,8 @@ bower_components
 .DS_Store
 Thumbs.db
 
-# Ignore built ts files
-dist/
+# Ignore built ts files (dist kept for Decky distribution)
+# dist/
 
 __pycache__/
 
