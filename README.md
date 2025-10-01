@@ -13,8 +13,36 @@ Steam Deck でゲームをしながらお気に入りの動画 / 配信を重ね
 * サイズ / マージン調整スライダー
 * URL 変更ダイアログ
 
-## 🚀 クイックスタート (あなた自身の Fork を公開)
-GitHub で自分のアカウントにフォークし、その Raw `deck.json` URL を Decky Loader に追加します。
+## 🚀 クイックスタート (Release ZIP を URL でインストール)
+Decky Loader の "Install from URL" (設定/Advanced などに配置) に GitHub Release の ZIP アセット URL を貼り付けて導入します。
+
+### 0. Release ZIP を作る
+PowerShell:
+```powershell
+pwsh -File .\scripts\package-release.ps1
+```
+生成された `decky-pip-<version>.zip` を GitHub Releases にアップロード。
+
+### 1. Release を作成
+1. `package.json` の version を更新
+2. タグ付け: `git tag v1.0.1 && git push origin v1.0.1`
+3. GitHub → Releases → Draft new release → アセットに ZIP を添付 → Publish
+
+### 2. ZIP 直リンク取得
+公開後のアセット URL 例:
+```
+https://github.com/<your-user>/decky-pip/releases/download/v1.0.1/decky-pip-v1.0.1.zip
+```
+
+### 3. Decky Loader 側
+Settings (または Advanced) → Install from URL → 上記 URL を入力 → Install。
+インストール後 Plugins リストに表示される。更新時は新しいタグ + 新 ZIP を再アップロードし、新 URL を使う。
+
+---
+従来の Raw `deck.json` を使うカスタムリポ方式とは異なります。`deck.json` (現状リポ内のデバイス設定用) は URL インストールには不要です。
+
+## 🔁 代替: 自分の Fork をそのまま利用 (参考)
+フォーク + dist コミットを Decky の別手段で参照する場合の手順を残します。
 
 ### 1. 依存 (Windows)
 1. Node.js (18+ 推奨)
@@ -22,15 +50,15 @@ GitHub で自分のアカウントにフォークし、その Raw `deck.json` UR
 3. GitHub CLI: `winget install --id GitHub.cli`
 4. PowerShell 7 推奨 (任意)
 
-### 2. フォークと push を自動化
+### 2. フォークと push を自動化 (任意)
 リポジトリ直下 (または clone 済みフォルダ) で:
 ```powershell
 pwsh -File .\scripts\auto-fork-and-push.ps1 -Upstream rossimo/decky-pip -BuildDist -IgnorePackageLock
 ```
 完了後、表示される `Raw deck.json URL` をコピーします。
 
-### 3. SteamDeck (Decky Loader) で追加
-Decky Loader → Settings → Store → Custom Repos → Add に Raw URL を貼り付け → Store タブにプラグインが出るので Install。
+### 3. (任意) Custom Repo を使う場合
+あなたの Decky Loader ビルドに Custom Repos UI が有効なときのみ。インデックス用の別形式 deck.json が必要 (本リポの deck.json とは異なるため未対応)。
 
 ### 4. 更新
 コード変更 → `npm run build` → `git add dist && git commit -m "feat: ..." && git push` → Decky Loader でアップデート反映。
