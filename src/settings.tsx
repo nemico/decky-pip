@@ -1,7 +1,6 @@
 import {
     PanelSection,
     PanelSectionRow,
-    DropdownItem,
     SliderField,
     showModal,
     ButtonItem,
@@ -27,16 +26,18 @@ export const Settings = () => {
         }));
     }, []);
 
-    const positionOptions = [
-        { label: 'Top Left', data: Position.TopLeft },
-        { label: 'Top', data: Position.Top },
-        { label: 'Top Right', data: Position.TopRight },
-        { label: 'Right', data: Position.Right },
-        { label: 'Bottom Right', data: Position.BottomRight },
-        { label: 'Bottom', data: Position.Bottom },
-        { label: 'Bottom Left', data: Position.BottomLeft },
-        { label: 'Left', data: Position.Left },
+    // スライダー左端 -> 右端 で時計回りに移動
+    const clockwisePositions: Position[] = [
+        Position.TopLeft,
+        Position.Top,
+        Position.TopRight,
+        Position.Right,
+        Position.BottomRight,
+        Position.Bottom,
+        Position.BottomLeft,
+        Position.Left,
     ];
+    const positionIndex = clockwisePositions.indexOf(position);
 
     return <>
         <PanelSection>
@@ -72,7 +73,7 @@ export const Settings = () => {
                     <ToggleField
                         label='Expand'
                         checked={viewMode == ViewMode.Expand}
-                        onChange={checked => {
+                        onChange={(checked: boolean) => {
                             setGlobalState(state => ({
                                 ...state,
                                 viewMode: checked
@@ -84,28 +85,38 @@ export const Settings = () => {
             </>}
             {viewMode == ViewMode.Picture && <>
                 <PanelSectionRow>
-                    <DropdownItem
-                        label='View'
-                        selectedOption={position}
-                        rgOptions={positionOptions}
-                        onMenuOpened={() =>
+                    <SliderField
+                        label='View Position'
+                        value={positionIndex < 0 ? 0 : positionIndex}
+                        onChange={(i: number) =>
                             setGlobalState(state => ({
                                 ...state,
-                                visible: false
-                            }))}
-                        onChange={option =>
-                            setGlobalState(state => ({
-                                ...state,
+                                position: clockwisePositions[i as number] ?? Position.TopLeft,
                                 visible: true,
-                                position: option.data,
                                 viewMode: ViewMode.Picture
-                            }))} />
+                            }))}
+                        min={0}
+                        max={clockwisePositions.length - 1}
+                        step={1}
+                        notchCount={clockwisePositions.length}
+                        notchTicksVisible={true}
+                        notchLabels={[
+                            { label: 'TL', notchIndex: 0, value: 0 },
+                            { label: 'T', notchIndex: 1, value: 1 },
+                            { label: 'TR', notchIndex: 2, value: 2 },
+                            { label: 'R', notchIndex: 3, value: 3 },
+                            { label: 'BR', notchIndex: 4, value: 4 },
+                            { label: 'B', notchIndex: 5, value: 5 },
+                            { label: 'BL', notchIndex: 6, value: 6 },
+                            { label: 'L', notchIndex: 7, value: 7 },
+                        ]}
+                    />
                 </PanelSectionRow>
                 <PanelSectionRow>
                     <SliderField
                         label='Size'
                         value={size}
-                        onChange={size =>
+                        onChange={(size: number) =>
                             setGlobalState(state => ({
                                 ...state,
                                 size,
@@ -127,7 +138,7 @@ export const Settings = () => {
                     <SliderField
                         label='Margin'
                         value={margin}
-                        onChange={margin =>
+                        onChange={(margin: number) =>
                             setGlobalState(state => ({
                                 ...state,
                                 margin,
